@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "name": "flexwork-platform",
+  "buildCommand": "echo 'No build needed'",
+  "installCommand": "pip install -r requirements-cloud.txt",
+  "runCommand": "streamlit run web_app.py --server.port $PORT --server.address 0.0.0.0",
+  "outputDirectory": "",
+  "environment": {
+    "PYTHON_VERSION": "3.9.18",
+    "PIP_INDEX_URL": "https://pypi.org/simple"
+  },
+  "nodeVersion": "20.18.0"
+}

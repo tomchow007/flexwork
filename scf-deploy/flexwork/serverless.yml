@@ -1,0 +1,21 @@
+app: flexwork-8f1c9269
+component: scf
+name: restful-api
+
+inputs:
+  name: test-restful-api
+  src: ./
+  handler: index.main_handler
+  runtime: Python3.6
+  region: ap-guangzhou
+  description: My Serverless Function
+  memorySize: 128
+  timeout: 20
+  events:
+    - http:
+        parameters:
+          netConfig:
+            enableIntranet: true
+            enableExtranet: true
+          qualifier: $DEFAULT
+          authType: NONE

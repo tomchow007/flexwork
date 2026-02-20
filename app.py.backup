@@ -1,0 +1,806 @@
+#!/usr/bin/env python3
+"""
+灵活用工管理平台 - Mac完整版
+包含4个主要功能
+"""
+import sys
+import json
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QPushButton, QLabel, QTextEdit, QTableWidget, QTableWidgetItem,
+    QProgressBar, QMessageBox, QTabWidget, QLineEdit, QDateEdit,
+    QComboBox, QSpinBox, QGroupBox, QFormLayout, QListWidget,
+    QListWidgetItem, QSplitter, QHeaderView
+)
+from PyQt6.QtCore import Qt, QTimer, QDate
+from PyQt6.QtGui import QFont, QColor
+
+class FlexWorkApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("灵活用工智能管理平台")
+        self.setGeometry(100, 100, 1200, 800)
+        
+        # 应用数据存储
+        self.jobs = []
+        self.candidates = []
+        self.contracts = []
+        
+        # 设置样式
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f8f9fa;
+            }
+            QTabWidget::pane {
+                border: 1px solid #dee2e6;
+                background: white;
+                border-radius: 8px;
+            }
+            QTabBar::tab {
+                background: #f8f9fa;
+                padding: 12px 24px;
+                margin-right: 4px;
+                border-radius: 6px 6px 0 0;
+            }
+            QTabBar::tab:selected {
+                background: white;
+                border-bottom: 3px solid #007aff;
+            }
+            QPushButton {
+                background-color: #007aff;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 6px;
+                border: none;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            QPushButton:hover {
+                background-color: #0056cc;
+            }
+            QPushButton#success {
+                background-color: #34c759;
+            }
+            QPushButton#warning {
+                background-color: #ff9500;
+            }
+            QPushButton#danger {
+                background-color: #ff3b30;
+            }
+            QGroupBox {
+                font-weight: bold;
+                border: 2px solid #e9ecef;
+                border-radius: 8px;
+                margin-top: 10px;
+                padding-top: 15px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 10px 0 10px;
+            }
+            QTableWidget {
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                background: white;
+            }
+            QTableWidget::item {
+                padding: 8px;
+            }
+        """)
+        
+        self.init_ui()
+        self.load_sample_data()
+    
+    def init_ui(self):
+        """初始化界面"""
+        # 中央部件
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        
+        # 标题
+        header = QLabel("🤖 灵活用工智能管理平台")
+        header.setFont(QFont("Arial", 24, QFont.Weight.Bold))
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setStyleSheet("color: #1a1a1a; margin: 20px 0;")
+        main_layout.addWidget(header)
+        
+        # 创建标签页
+        self.tabs = QTabWidget()
+        
+        # 1. 智能匹配标签页
+        self.create_matching_tab()
+        
+        # 2. 职位管理标签页
+        self.create_jobs_tab()
+        
+        # 3. 候选人管理标签页
+        self.create_candidates_tab()
+        
+        # 4. 合同管理标签页
+        self.create_contracts_tab()
+        
+        # 5. 数据分析标签页
+        self.create_analytics_tab()
+        
+        main_layout.addWidget(self.tabs)
+        
+        # 状态栏
+        self.status_bar = QLabel("就绪 | 职位: 0 | 候选人: 0 | 合同: 0")
+        self.status_bar.setStyleSheet("background: white; padding: 10px; border-top: 1px solid #dee2e6;")
+        main_layout.addWidget(self.status_bar)
+    
+    def create_matching_tab(self):
+        """创建智能匹配标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # 标题
+        title = QLabel("🔍 智能岗位匹配")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #007aff; margin: 10px 0;")
+        layout.addWidget(title)
+        
+        # 分割面板
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # 左侧：输入区
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        
+        # 职位选择
+        job_group = QGroupBox("选择职位")
+        job_form = QFormLayout()
+        self.job_combo = QComboBox()
+        job_form.addRow("职位:", self.job_combo)
+        job_group.setLayout(job_form)
+        left_layout.addWidget(job_group)
+        
+        # 匹配选项
+        options_group = QGroupBox("匹配选项")
+        options_layout = QVBoxLayout()
+        
+        self.skill_weight = QSpinBox()
+        self.skill_weight.setRange(0, 100)
+        self.skill_weight.setValue(40)
+        options_layout.addWidget(QLabel(f"技能权重: {self.skill_weight.value()}%"))
+        options_layout.addWidget(self.skill_weight)
+        
+        self.exp_weight = QSpinBox()
+        self.exp_weight.setRange(0, 100)
+        self.exp_weight.setValue(30)
+        options_layout.addWidget(QLabel(f"经验权重: {self.exp_weight.value()}%"))
+        options_layout.addWidget(self.exp_weight)
+        
+        self.salary_weight = QSpinBox()
+        self.salary_weight.setRange(0, 100)
+        self.salary_weight.setValue(20)
+        options_layout.addWidget(QLabel(f"薪资权重: {self.salary_weight.value()}%"))
+        options_layout.addWidget(self.salary_weight)
+        
+        options_group.setLayout(options_layout)
+        left_layout.addWidget(options_group)
+        
+        # 匹配按钮
+        match_btn = QPushButton("🚀 开始智能匹配")
+        match_btn.clicked.connect(self.start_ai_matching)
+        match_btn.setObjectName("success")
+        left_layout.addWidget(match_btn)
+        
+        left_layout.addStretch()
+        
+        # 中间：进度和结果
+        center_panel = QWidget()
+        center_layout = QVBoxLayout(center_panel)
+        
+        # 进度条
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        center_layout.addWidget(self.progress_bar)
+        
+        # 结果表格
+        self.result_table = QTableWidget(0, 5)
+        self.result_table.setHorizontalHeaderLabels(["排名", "候选人", "匹配度", "推荐级别", "操作"])
+        self.result_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        center_layout.addWidget(self.result_table)
+        
+        # 右侧：AI分析
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        
+        ai_group = QGroupBox("🤖 AI分析报告")
+        self.ai_text = QTextEdit()
+        self.ai_text.setReadOnly(True)
+        self.ai_text.setPlaceholderText("AI分析结果将显示在这里...")
+        right_layout.addWidget(self.ai_text)
+        
+        # 操作按钮
+        action_btn = QPushButton("📋 导出匹配报告")
+        action_btn.clicked.connect(self.export_report)
+        right_layout.addWidget(action_btn)
+        
+        splitter.addWidget(left_panel)
+        splitter.addWidget(center_panel)
+        splitter.addWidget(right_panel)
+        splitter.setSizes([200, 500, 300])
+        
+        layout.addWidget(splitter)
+        
+        self.tabs.addTab(tab, "🎯 智能匹配")
+    
+    def create_jobs_tab(self):
+        """创建职位管理标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # 标题和按钮
+        header_layout = QHBoxLayout()
+        title = QLabel("📋 职位管理")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #34c759;")
+        
+        new_job_btn = QPushButton("➕ 发布新职位")
+        new_job_btn.clicked.connect(self.show_new_job_dialog)
+        
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addWidget(new_job_btn)
+        layout.addLayout(header_layout)
+        
+        # 职位表格
+        self.jobs_table = QTableWidget(0, 6)
+        self.jobs_table.setHorizontalHeaderLabels(["职位名称", "薪资范围", "工作地点", "状态", "发布日期", "操作"])
+        self.jobs_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.jobs_table)
+        
+        # 统计数据
+        stats_layout = QHBoxLayout()
+        stats = [
+            ("全部职位", "0", "#007aff"),
+            ("招聘中", "0", "#34c759"),
+            ("已暂停", "0", "#ff9500"),
+            ("已结束", "0", "#8e8e93")
+        ]
+        
+        for label, value, color in stats:
+            stat_widget = QWidget()
+            stat_layout = QVBoxLayout()
+            stat_layout.setContentsMargins(20, 10, 20, 10)
+            
+            value_label = QLabel(value)
+            value_label.setStyleSheet(f"font-size: 24px; font-weight: bold; color: {color};")
+            
+            text_label = QLabel(label)
+            text_label.setStyleSheet("color: #666; font-size: 12px;")
+            
+            stat_layout.addWidget(value_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            stat_layout.addWidget(text_label, alignment=Qt.AlignmentFlag.AlignCenter)
+            stat_widget.setLayout(stat_layout)
+            stat_widget.setStyleSheet("""
+                background: white;
+                border-radius: 8px;
+                border: 1px solid #e9ecef;
+            """)
+            stats_layout.addWidget(stat_widget)
+        
+        layout.addLayout(stats_layout)
+        
+        self.tabs.addTab(tab, "📋 职位管理")
+    
+    def create_candidates_tab(self):
+        """创建候选人管理标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # 标题和搜索
+        header_layout = QHBoxLayout()
+        title = QLabel("👥 候选人管理")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #ff9500;")
+        
+        search_layout = QHBoxLayout()
+        search_input = QLineEdit()
+        search_input.setPlaceholderText("搜索候选人...")
+        search_btn = QPushButton("搜索")
+        
+        search_layout.addWidget(search_input)
+        search_layout.addWidget(search_btn)
+        
+        header_layout.addWidget(title)
+        header_layout.addStretch()
+        header_layout.addLayout(search_layout)
+        layout.addLayout(header_layout)
+        
+        # 候选人列表
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # 左侧：筛选
+        filter_panel = QWidget()
+        filter_layout = QVBoxLayout(filter_panel)
+        
+        # 技能筛选
+        skills_group = QGroupBox("技能筛选")
+        skills_layout = QVBoxLayout()
+        skills = ["Python", "React", "UI/UX", "项目管理", "市场营销"]
+        for skill in skills:
+            checkbox = QPushButton(f"✓ {skill}")
+            checkbox.setCheckable(True)
+            checkbox.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    padding: 8px;
+                    border: none;
+                    background: #f8f9fa;
+                }
+                QPushButton:checked {
+                    background: #e3f2fd;
+                    color: #007aff;
+                }
+            """)
+            skills_layout.addWidget(checkbox)
+        skills_group.setLayout(skills_layout)
+        filter_layout.addWidget(skills_group)
+        
+        # 经验筛选
+        exp_group = QGroupBox("工作经验")
+        exp_layout = QVBoxLayout()
+        exp_ranges = ["不限", "1年以下", "1-3年", "3-5年", "5年以上"]
+        for exp in exp_ranges:
+            radio = QPushButton(f"○ {exp}")
+            radio.setCheckable(True)
+            radio.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    padding: 8px;
+                    border: none;
+                    background: #f8f9fa;
+                }
+                QPushButton:checked {
+                    background: #e3f2fd;
+                    color: #007aff;
+                }
+            """)
+            if exp == "不限":
+                radio.setChecked(True)
+            exp_layout.addWidget(radio)
+        exp_group.setLayout(exp_layout)
+        filter_layout.addWidget(exp_group)
+        
+        filter_layout.addStretch()
+        
+        # 右侧：候选人表格
+        candidates_panel = QWidget()
+        candidates_layout = QVBoxLayout(candidates_panel)
+        
+        self.candidates_table = QTableWidget(0, 5)
+        self.candidates_table.setHorizontalHeaderLabels(["姓名", "技能", "经验", "期望薪资", "状态"])
+        self.candidates_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        candidates_layout.addWidget(self.candidates_table)
+        
+        # 操作按钮
+        btn_layout = QHBoxLayout()
+        view_btn = QPushButton("👁️ 查看详情")
+        contact_btn = QPushButton("💬 联系")
+        interview_btn = QPushButton("📅 安排面试")
+        
+        btn_layout.addWidget(view_btn)
+        btn_layout.addWidget(contact_btn)
+        btn_layout.addWidget(interview_btn)
+        candidates_layout.addLayout(btn_layout)
+        
+        splitter.addWidget(filter_panel)
+        splitter.addWidget(candidates_panel)
+        splitter.setSizes([200, 600])
+        
+        layout.addWidget(splitter)
+        
+        self.tabs.addTab(tab, "👥 候选人管理")
+    
+    def create_contracts_tab(self):
+        """创建合同管理标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # 标题
+        title = QLabel("📄 合同管理")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #af52de; margin: 10px 0;")
+        layout.addWidget(title)
+        
+        # 合同状态筛选
+        status_layout = QHBoxLayout()
+        status_btns = [
+            ("全部", None),
+            ("待签署", "warning"),
+            ("执行中", "success"),
+            ("已完成", ""),
+            ("已终止", "danger")
+        ]
+        
+        for text, style in status_btns:
+            btn = QPushButton(text)
+            if style:
+                btn.setObjectName(style)
+            btn.setCheckable(True)
+            if text == "全部":
+                btn.setChecked(True)
+            status_layout.addWidget(btn)
+        
+        status_layout.addStretch()
+        new_contract_btn = QPushButton("➕ 新建合同")
+        new_contract_btn.setObjectName("success")
+        status_layout.addWidget(new_contract_btn)
+        layout.addLayout(status_layout)
+        
+        # 合同列表
+        self.contracts_table = QTableWidget(0, 7)
+        self.contracts_table.setHorizontalHeaderLabels([
+            "合同编号", "职位名称", "候选人", "开始日期", "结束日期", "状态", "操作"
+        ])
+        self.contracts_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.contracts_table)
+        
+        # 时间线
+        timeline_group = QGroupBox("📅 合同时间线")
+        timeline_layout = QVBoxLayout()
+        
+        # 这里可以添加时间线组件
+        timeline_label = QLabel("合同时间线可视化（开发中）")
+        timeline_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        timeline_label.setStyleSheet("color: #666; padding: 40px;")
+        timeline_layout.addWidget(timeline_label)
+        
+        timeline_group.setLayout(timeline_layout)
+        layout.addWidget(timeline_group)
+        
+        self.tabs.addTab(tab, "📄 合同管理")
+    
+    def create_analytics_tab(self):
+        """创建数据分析标签页"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # 标题
+        title = QLabel("📊 数据分析")
+        title.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        title.setStyleSheet("color: #5ac8fa; margin: 10px 0;")
+        layout.addWidget(title)
+        
+        # 数据卡片
+        cards_layout = QHBoxLayout()
+        
+        cards_data = [
+            ("匹配成功率", "87%", "📈", "#34c759"),
+            ("平均匹配时间", "2.3天", "⏱️", "#007aff"),
+            ("候选人满意度", "4.8/5", "⭐", "#ffcc00"),
+            ("企业满意度", "4.6/5", "💼", "#af52de"),
+        ]
+        
+        for label, value, icon, color in cards_data:
+            card = QWidget()
+            card_layout = QVBoxLayout()
+            card_layout.setContentsMargins(20, 20, 20, 20)
+            
+            icon_label = QLabel(icon)
+            icon_label.setStyleSheet(f"font-size: 32px; color: {color};")
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            value_label = QLabel(value)
+            value_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #1a1a1a;")
+            value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            text_label = QLabel(label)
+            text_label.setStyleSheet("color: #666; font-size: 14px;")
+            text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+            card_layout.addWidget(icon_label)
+            card_layout.addWidget(value_label)
+            card_layout.addWidget(text_label)
+            
+            card.setLayout(card_layout)
+            card.setStyleSheet("""
+                background: white;
+                border-radius: 12px;
+                border: 1px solid #e9ecef;
+            """)
+            cards_layout.addWidget(card)
+        
+        layout.addLayout(cards_layout)
+        
+        # 分析报告
+        report_group = QGroupBox("📋 AI分析报告")
+        report_layout = QVBoxLayout()
+        
+        report_text = QTextEdit()
+        report_text.setReadOnly(True)
+        report_text.setText("""
+        📊 本月平台数据分析报告
+        
+        🔥 热门趋势：
+        1. 前端开发岗位需求增长 35%
+        2. 远程工作职位增加 42%
+        3. 灵活用工平均薪资上涨 15%
+        
+        🎯 优化建议：
+        1. 增加Python、React技能培训
+        2. 优化远程协作工具集成
+        3. 加强合同模板规范化
+        
+        💡 机会发现：
+        1. 市场对AI技能需求上升
+        2. 短视频运营岗位缺口大
+        3. 跨境电商人才紧缺
+        """)
+        
+        report_layout.addWidget(report_text)
+        report_group.setLayout(report_layout)
+        layout.addWidget(report_group)
+        
+        # 导出按钮
+        export_btn = QPushButton("📥 导出完整报告")
+        export_btn.clicked.connect(self.export_analytics)
+        layout.addWidget(export_btn)
+        
+        self.tabs.addTab(tab, "📊 数据分析")
+    
+    def load_sample_data(self):
+        """加载示例数据"""
+        # 示例职位数据
+        self.jobs = [
+            {"name": "前端开发工程师", "salary": "300-500元/天", "location": "远程", "status": "招聘中"},
+            {"name": "UI设计师", "salary": "250-400元/天", "location": "上海", "status": "招聘中"},
+            {"name": "Python开发", "salary": "350-600元/天", "location": "远程", "status": "暂停"},
+            {"name": "市场营销", "salary": "200-350元/天", "location": "北京", "status": "结束"},
+        ]
+        
+        # 示例候选人数据
+        self.candidates = [
+            {"name": "张三", "skills": "Python, Django, React", "exp": "3年", "salary": "400元/天", "status": "可联系"},
+            {"name": "李四", "skills": "UI/UX, Figma, Photoshop", "exp": "5年", "salary": "350元/天", "status": "面试中"},
+            {"name": "王五", "skills": "市场营销, SEO, 内容运营", "exp": "2年", "salary": "280元/天", "status": "已录用"},
+            {"name": "赵六", "skills": "React, Vue, Node.js", "exp": "4年", "salary": "450元/天", "status": "可联系"},
+        ]
+        
+        # 更新UI
+        self.update_jobs_table()
+        self.update_candidates_table()
+        self.update_status_bar()
+        
+        # 填充职位下拉框
+        for job in self.jobs:
+            self.job_combo.addItem(f"{job['name']} - {job['location']}")
+    
+    def update_jobs_table(self):
+        """更新职位表格"""
+        self.jobs_table.setRowCount(len(self.jobs))
+        for i, job in enumerate(self.jobs):
+            self.jobs_table.setItem(i, 0, QTableWidgetItem(job["name"]))
+            self.jobs_table.setItem(i, 1, QTableWidgetItem(job["salary"]))
+            self.jobs_table.setItem(i, 2, QTableWidgetItem(job["location"]))
+            
+            status_item = QTableWidgetItem(job["status"])
+            if job["status"] == "招聘中":
+                status_item.setForeground(QColor("#34c759"))
+            elif job["status"] == "暂停":
+                status_item.setForeground(QColor("#ff9500"))
+            else:
+                status_item.setForeground(QColor("#8e8e93"))
+            self.jobs_table.setItem(i, 3, status_item)
+            
+            self.jobs_table.setItem(i, 4, QTableWidgetItem("2024-01-15"))
+            
+            # 操作按钮
+            action_btn = QPushButton("管理")
+            action_btn.setStyleSheet("padding: 5px 10px;")
+            self.jobs_table.setCellWidget(i, 5, action_btn)
+    
+    def update_candidates_table(self):
+        """更新候选人表格"""
+        self.candidates_table.setRowCount(len(self.candidates))
+        for i, candidate in enumerate(self.candidates):
+            self.candidates_table.setItem(i, 0, QTableWidgetItem(candidate["name"]))
+            self.candidates_table.setItem(i, 1, QTableWidgetItem(candidate["skills"]))
+            self.candidates_table.setItem(i, 2, QTableWidgetItem(candidate["exp"]))
+            self.candidates_table.setItem(i, 3, QTableWidgetItem(candidate["salary"]))
+            
+            status_item = QTableWidgetItem(candidate["status"])
+            if candidate["status"] == "可联系":
+                status_item.setForeground(QColor("#007aff"))
+            elif candidate["status"] == "面试中":
+                status_item.setForeground(QColor("#ff9500"))
+            else:
+                status_item.setForeground(QColor("#34c759"))
+            self.candidates_table.setItem(i, 4, status_item)
+    
+    def update_status_bar(self):
+        """更新状态栏"""
+        self.status_bar.setText(
+            f"就绪 | 职位: {len(self.jobs)} | 候选人: {len(self.candidates)} | 合同: {len(self.contracts)}"
+        )
+    
+    def start_ai_matching(self):
+        """开始AI匹配"""
+        if self.job_combo.currentText() == "":
+            QMessageBox.warning(self, "提示", "请先选择要匹配的职位！")
+            return
+        
+        # 显示进度条
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        # 模拟匹配过程
+        self.match_step = 0
+        self.match_timer = QTimer()
+        self.match_timer.timeout.connect(self.update_matching_progress)
+        self.match_timer.start(200)
+        
+        # 清空之前的结果
+        self.result_table.setRowCount(0)
+        self.ai_text.clear()
+    
+    def update_matching_progress(self):
+        """更新匹配进度"""
+        self.match_step += 5
+        self.progress_bar.setValue(self.match_step)
+        
+        if self.match_step >= 100:
+            self.match_timer.stop()
+            self.progress_bar.setVisible(False)
+            self.show_matching_results()
+    
+    def show_matching_results(self):
+        """显示匹配结果"""
+        # 模拟匹配结果
+        results = [
+            {"rank": 1, "name": "张三", "score": 92, "level": "强烈推荐"},
+            {"rank": 2, "name": "李四", "score": 85, "level": "推荐"},
+            {"rank": 3, "name": "王五", "score": 78, "level": "一般推荐"},
+            {"rank": 4, "name": "赵六", "score": 65, "level": "谨慎推荐"},
+            {"rank": 5, "name": "钱七", "score": 58, "level": "不推荐"},
+        ]
+        
+        # 更新表格
+        self.result_table.setRowCount(len(results))
+        for i, result in enumerate(results):
+            self.result_table.setItem(i, 0, QTableWidgetItem(str(result["rank"])))
+            self.result_table.setItem(i, 1, QTableWidgetItem(result["name"]))
+            
+            score_item = QTableWidgetItem(f"{result['score']}%")
+            if result["score"] >= 85:
+                score_item.setForeground(QColor("#34c759"))
+            elif result["score"] >= 70:
+                score_item.setForeground(QColor("#ff9500"))
+            else:
+                score_item.setForeground(QColor("#ff3b30"))
+            self.result_table.setItem(i, 2, score_item)
+            
+            level_item = QTableWidgetItem(result["level"])
+            self.result_table.setItem(i, 3, level_item)
+            
+            # 操作按钮
+            action_btn = QPushButton("查看")
+            action_btn.setStyleSheet("padding: 5px 15px;")
+            self.result_table.setCellWidget(i, 4, action_btn)
+        
+        # 生成AI分析报告
+        ai_report = f"""
+        🤖 AI匹配分析报告
+        {'='*40}
+        
+        职位：{self.job_combo.currentText()}
+        匹配时间：{QDate.currentDate().toString("yyyy-MM-dd")}
+        参与匹配候选人：{len(self.candidates)}人
+        
+        🏆 最佳匹配候选人：{results[0]['name']}
+        匹配分数：{results[0]['score']}%
+        
+        📊 匹配分布：
+        • 85分以上（优秀）：2人
+        • 70-85分（良好）：1人
+        • 60-70分（一般）：1人
+        • 60分以下（不足）：1人
+        
+        💡 AI建议：
+        1. 立即联系前3名候选人安排面试
+        2. {results[0]['name']}的技能与职位要求高度匹配
+        3. 建议重点考察候选人的沟通能力
+        
+        ⚠️ 注意事项：
+        1. 验证候选人的实际项目经验
+        2. 确认可工作时间和地点
+        3. 明确薪资期望和支付方式
+        """
+        
+        self.ai_text.setText(ai_report)
+        
+        QMessageBox.information(self, "匹配完成", f"智能匹配完成！找到 {len(results)} 个合适的候选人")
+    
+    def show_new_job_dialog(self):
+        """显示新建职位对话框"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("发布新职位")
+        dialog.setFixedSize(500, 400)
+        
+        layout = QVBoxLayout()
+        
+        # 表单
+        form_layout = QFormLayout()
+        
+        name_input = QLineEdit()
+        name_input.setPlaceholderText("例如：前端开发工程师")
+        form_layout.addRow("职位名称:", name_input)
+        
+        salary_min = QSpinBox()
+        salary_min.setRange(0, 1000)
+        salary_min.setSuffix("元/天")
+        salary_max = QSpinBox()
+        salary_max.setRange(0, 1000)
+        salary_max.setSuffix("元/天")
+        
+        salary_layout = QHBoxLayout()
+        salary_layout.addWidget(salary_min)
+        salary_layout.addWidget(QLabel("到"))
+        salary_layout.addWidget(salary_max)
+        salary_layout.addStretch()
+        form_layout.addRow("薪资范围:", salary_layout)
+        
+        location_combo = QComboBox()
+        location_combo.addItems(["远程", "上海", "北京", "深圳", "杭州", "其他"])
+        form_layout.addRow("工作地点:", location_combo)
+        
+        desc_input = QTextEdit()
+        desc_input.setMaximumHeight(100)
+        form_layout.addRow("职位描述:", desc_input)
+        
+        layout.addLayout(form_layout)
+        
+        # 按钮
+        button_layout = QHBoxLayout()
+        save_btn = QPushButton("保存职位")
+        cancel_btn = QPushButton("取消")
+        
+        save_btn.clicked.connect(dialog.accept)
+        cancel_btn.clicked.connect(dialog.reject)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(save_btn)
+        
+        layout.addLayout(button_layout)
+        dialog.setLayout(layout)
+        
+        if dialog.exec():
+            # 保存新职位
+            new_job = {
+                "name": name_input.text(),
+                "salary": f"{salary_min.value()}-{salary_max.value()}元/天",
+                "location": location_combo.currentText(),
+                "status": "招聘中"
+            }
+            self.jobs.append(new_job)
+            self.update_jobs_table()
+            self.update_status_bar()
+            
+            # 更新下拉框
+            self.job_combo.addItem(f"{new_job['name']} - {new_job['location']}")
+            
+            QMessageBox.information(self, "成功", "职位发布成功！")
+    
+    def export_report(self):
+        """导出报告"""
+        QMessageBox.information(self, "导出", "匹配报告已导出到桌面")
+    
+    def export_analytics(self):
+        """导出分析报告"""
+        QMessageBox.information(self, "导出", "数据分析报告已导出到桌面")
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = FlexWorkApp()
+    window.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()

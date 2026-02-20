@@ -1,0 +1,14 @@
+service: flexwork-app
+
+provider:
+  name: tencent
+  runtime: Python3.6
+  region: ap-guangzhou
+
+functions:
+  app:
+    handler: web_app.handler
+    events:
+      - apigw:
+          path: /
+          method: ANY

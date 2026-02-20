@@ -1,0 +1,24 @@
+[
+  {
+    "id": "contract_001",
+    "job_id": "job_001",
+    "candidate_id": "cand_001",
+    "start_date": "2024-01-15",
+    "end_date": "2024-06-15",
+    "salary": 450,
+    "status": "执行中",
+    "work_hours": "每周40小时",
+    "payment_method": "月结"
+  },
+  {
+    "job_id": "job_002",
+    "candidate_id": "cand_001",
+    "start_date": "2025-04-01",
+    "end_date": "2026-03-31",
+    "salary": 400,
+    "work_content": "",
+    "payment_method": "月结",
+    "status": "待签署",
+    "id": "contract_002"
+  }
+]

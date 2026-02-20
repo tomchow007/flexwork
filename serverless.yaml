@@ -1,0 +1,21 @@
+# 应用信息
+app: flexwork
+component: flask
+name: flexwork-app
+stage: prod
+
+inputs:
+  src:
+    src: ./
+    exclude:
+      - .git
+      - .gitignore
+      - README.md
+  region: ap-guangzhou
+  runtime: Python3.6
+  functionName: flexwork-function
+  apigatewayConf:
+    protocols:
+      - http
+      - https
+    environment: release

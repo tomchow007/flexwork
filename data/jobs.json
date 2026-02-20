@@ -1,0 +1,61 @@
+[
+  {
+    "id": "job_001",
+    "title": "前端开发工程师",
+    "salary": "300-500元/天",
+    "location": "远程",
+    "status": "招聘中",
+    "description": "负责Web前端开发，要求React/Vue经验",
+    "requirements": "3年以上经验，精通JavaScript",
+    "created": "2024-01-01",
+    "applicants": 12
+  },
+  {
+    "title": "测试工程师",
+    "description": "",
+    "skills": [
+      "测试用例、测试执行"
+    ],
+    "experience": "1-3年",
+    "salary": "500-800元/天",
+    "location": "成都",
+    "job_type": "全职",
+    "urgency": "普通",
+    "status": "招聘中",
+    "id": "job_002",
+    "created": "2026-01-06",
+    "applicants": 0
+  },
+  {
+    "title": "测试工程师-中级",
+    "description": "",
+    "skills": [
+      "测试用例、测试执行"
+    ],
+    "experience": "3-5年",
+    "salary": "700-1000元/天",
+    "location": "远程",
+    "job_type": "全职",
+    "urgency": "普通",
+    "status": "招聘中",
+    "id": "job_003",
+    "created": "2026-01-06",
+    "applicants": 0
+  },
+  {
+    "title": "测试工程师-高级",
+    "description": "",
+    "skills": [
+      "测试用例、测试执行"
+    ],
+    "experience": "不限",
+    "salary": "800-2000元/天",
+    "location": "远程",
+    "job_type": "全职",
+    "urgency": "普通",
+    "status": "招聘中",
+    "id": "job_004",
+    "created": "2026-01-06",
+    "applicants": 0
+  }
+]

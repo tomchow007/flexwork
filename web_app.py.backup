@@ -1,0 +1,435 @@
+#!/usr/bin/env python3
+"""
+灵活用工平台 - Web 版本
+使用 Streamlit 构建
+"""
+import streamlit as st
+import json
+import pandas as pd
+from datetime import datetime
+import os
+
+# 尝试导入你的数据管理器
+try:
+    from app import DataManager
+    USE_LOCAL_DATA = True
+except ImportError:
+    USE_LOCAL_DATA = False
+    st.warning("使用内置示例数据（无法导入 DataManager）")
+
+# 页面配置
+st.set_page_config(
+    page_title="灵活用工平台",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# 自定义CSS
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #f8f9fa;
+    }
+    .main-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007aff;
+    }
+    .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .action-button {
+        background-color: #007aff;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        text-decoration: none;
+    }
+    .action-button:hover {
+        background-color: #0056cc;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 初始化数据管理器
+@st.cache_resource
+def init_data_manager():
+    if USE_LOCAL_DATA:
+        return DataManager()
+    return None
+
+dm = init_data_manager()
+
+# 如果无法导入DataManager，使用内置数据
+if not USE_LOCAL_DATA:
+    @st.cache_data
+    def get_sample_data():
+        jobs = [
+            {"id": "job_001", "title": "前端开发工程师", "salary": "300-500元/天", 
+             "location": "远程", "status": "招聘中", "created": "2024-01-01"},
+            {"id": "job_002", "title": "UI设计师", "salary": "250-400元/天", 
+             "location": "上海", "status": "招聘中", "created": "2024-01-02"},
+            {"id": "job_003", "title": "Python后端", "salary": "400-600元/天", 
+             "location": "远程", "status": "招聘中", "created": "2024-01-03"},
+        ]
+        
+        candidates = [
+            {"id": "cand_001", "name": "张三", "skills": ["Python", "React", "JavaScript"],
+             "experience": 3, "expected_salary": 400, "status": "可联系"},
+            {"id": "cand_002", "name": "李四", "skills": ["UI/UX", "Figma", "Photoshop"],
+             "experience": 5, "expected_salary": 350, "status": "可联系"},
+            {"id": "cand_003", "name": "王五", "skills": ["Python", "Django", "PostgreSQL"],
+             "experience": 4, "expected_salary": 450, "status": "可联系"},
+        ]
+        
+        contracts = [
+            {"id": "contract_001", "job_title": "前端开发工程师", "candidate_name": "张三",
+             "start_date": "2024-01-15", "end_date": "2024-06-15", "status": "执行中",
+             "total_amount": 54000},
+        ]
+        
+        return jobs, candidates, contracts
+    
+    jobs, candidates, contracts = get_sample_data()
+else:
+    jobs = dm.jobs
+    candidates = dm.candidates
+    contracts = dm.contracts
+
+# 侧边栏导航
+st.sidebar.markdown("## 🤖 灵活用工平台")
+st.sidebar.markdown("---")
+
+page = st.sidebar.radio(
+    "导航",
+    ["🏠 仪表板", "📋 职位管理", "👥 候选人管理", "📄 合同管理", "🎯 智能匹配", "📊 数据分析"]
+)
+
+st.sidebar.markdown("---")
+st.sidebar.info(f"数据更新时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+# ==================== 仪表板 ====================
+if page == "🏠 仪表板":
+    st.markdown('<div class="main-header"><h1>🏠 灵活用工仪表板</h1></div>', unsafe_allow_html=True)
+    
+    # 统计卡片
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown("""
+        <div class="stat-card">
+            <div class="stat-number">{}</div>
+            <div class="stat-label">职位总数</div>
+        </div>
+        """.format(len(jobs)), unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="stat-card">
+            <div class="stat-number">{}</div>
+            <div class="stat-label">候选人总数</div>
+        </div>
+        """.format(len(candidates)), unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="stat-card">
+            <div class="stat-number">{}</div>
+            <div class="stat-label">合同总数</div>
+        </div>
+        """.format(len(contracts)), unsafe_allow_html=True)
+    
+    with col4:
+        active_jobs = len([j for j in jobs if j['status'] == '招聘中'])
+        st.markdown("""
+        <div class="stat-card">
+            <div class="stat-number">{}</div>
+            <div class="stat-label">招聘中职位</div>
+        </div>
+        """.format(active_jobs), unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # 最近活动
+    st.subheader("📋 最近活动")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**最新职位**")
+        job_df = pd.DataFrame([{
+            "职位": j['title'],
+            "薪资": j['salary'],
+            "地点": j['location']
+        } for j in jobs[:3]])
+        st.dataframe(job_df, use_container_width=True)
+    
+    with col2:
+        st.markdown("**最新候选人**")
+        candidate_df = pd.DataFrame([{
+            "姓名": c['name'],
+            "技能": ", ".join(c['skills'][:2]),
+            "经验": f"{c['experience']}年"
+        } for c in candidates[:3]])
+        st.dataframe(candidate_df, use_container_width=True)
+
+# ==================== 职位管理 ====================
+elif page == "📋 职位管理":
+    st.markdown('<div class="main-header"><h1>📋 职位管理</h1></div>', unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["📋 职位列表", "➕ 发布新职位"])
+    
+    with tab1:
+        if jobs:
+            job_df = pd.DataFrame(jobs)
+            # 只显示需要的列
+            display_df = job_df[['title', 'salary', 'location', 'status', 'created']]
+            display_df.columns = ['职位名称', '薪资', '地点', '状态', '发布日期']
+            st.dataframe(display_df, use_container_width=True)
+        else:
+            st.info("暂无职位数据")
+    
+    with tab2:
+        with st.form("new_job_form"):
+            title = st.text_input("职位名称 *", placeholder="例如：前端开发工程师")
+            salary_min = st.number_input("最低薪资（元/天）", min_value=0, value=200, step=50)
+            salary_max = st.number_input("最高薪资（元/天）", min_value=0, value=500, step=50)
+            location = st.selectbox("工作地点", ["远程", "上海", "北京", "深圳", "杭州", "广州", "成都"])
+            skills = st.text_input("技能要求", placeholder="用逗号分隔，例如：Python, React, Vue")
+            description = st.text_area("职位描述", height=100)
+            
+            col1, col2, col3 = st.columns(3)
+            with col2:
+                submitted = st.form_submit_button("📢 发布职位", use_container_width=True)
+            
+            if submitted:
+                if title and skills:
+                    new_job = {
+                        "id": f"job_{len(jobs)+1:03d}",
+                        "title": title,
+                        "salary": f"{salary_min}-{salary_max}元/天",
+                        "location": location,
+                        "skills": [s.strip() for s in skills.split(",") if s.strip()],
+                        "description": description,
+                        "status": "招聘中",
+                        "created": datetime.now().strftime("%Y-%m-%d"),
+                        "applicants": 0
+                    }
+                    
+                    if USE_LOCAL_DATA:
+                        dm.add_job(new_job)
+                    else:
+                        jobs.append(new_job)
+                    
+                    st.success(f"✅ 职位发布成功！")
+                    st.balloons()
+                else:
+                    st.error("❌ 职位名称和技能要求不能为空！")
+
+# ==================== 候选人管理 ====================
+elif page == "👥 候选人管理":
+    st.markdown('<div class="main-header"><h1>👥 候选人管理</h1></div>', unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["👥 候选人列表", "➕ 添加候选人"])
+    
+    with tab1:
+        if candidates:
+            candidate_data = []
+            for c in candidates:
+                candidate_data.append({
+                    "姓名": c['name'],
+                    "技能": ", ".join(c['skills'][:3]),
+                    "经验": f"{c['experience']}年",
+                    "期望薪资": f"{c['expected_salary']}元/天",
+                    "状态": c['status']
+                })
+            df = pd.DataFrame(candidate_data)
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.info("暂无候选人数据")
+    
+    with tab2:
+        with st.form("new_candidate_form"):
+            name = st.text_input("姓名 *")
+            skills = st.text_input("技能 *", placeholder="用逗号分隔")
+            experience = st.number_input("工作经验（年）", min_value=0, max_value=50, value=3)
+            salary = st.number_input("期望薪资（元/天）", min_value=0, value=300, step=50)
+            
+            col1, col2, col3 = st.columns(3)
+            with col2:
+                submitted = st.form_submit_button("➕ 添加候选人", use_container_width=True)
+            
+            if submitted:
+                if name and skills:
+                    new_candidate = {
+                        "id": f"cand_{len(candidates)+1:03d}",
+                        "name": name,
+                        "skills": [s.strip() for s in skills.split(",") if s.strip()],
+                        "experience": experience,
+                        "expected_salary": salary,
+                        "status": "可联系"
+                    }
+                    
+                    if USE_LOCAL_DATA:
+                        dm.add_candidate(new_candidate)
+                    else:
+                        candidates.append(new_candidate)
+                    
+                    st.success(f"✅ 候选人 {name} 添加成功！")
+                else:
+                    st.error("❌ 姓名和技能不能为空！")
+
+# ==================== 合同管理 ====================
+elif page == "📄 合同管理":
+    st.markdown('<div class="main-header"><h1>📄 合同管理</h1></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        if contracts:
+            contract_data = []
+            for c in contracts:
+                contract_data.append({
+                    "合同编号": c['id'],
+                    "职位": c['job_title'],
+                    "候选人": c['candidate_name'],
+                    "开始日期": c['start_date'],
+                    "结束日期": c['end_date'],
+                    "状态": c['status'],
+                    "金额": f"¥{c['total_amount']:,}"
+                })
+            df = pd.DataFrame(contract_data)
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.info("暂无合同数据")
+    
+    with col2:
+        st.subheader("📊 合同统计")
+        total_amount = sum(c.get('total_amount', 0) for c in contracts)
+        active_contracts = len([c for c in contracts if c['status'] == '执行中'])
+        
+        st.metric("合同总金额", f"¥{total_amount:,}")
+        st.metric("执行中合同", active_contracts)
+        
+        st.subheader("➕ 新建合同")
+        st.info("合同创建功能开发中...")
+
+# ==================== 智能匹配 ====================
+elif page == "🎯 智能匹配":
+    st.markdown('<div class="main-header"><h1>🎯 智能匹配</h1></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.subheader("选择职位")
+        job_options = [f"{j['title']} - {j['location']}" for j in jobs if j['status'] == '招聘中']
+        if job_options:
+            selected_job = st.selectbox("职位列表", job_options)
+            
+            if st.button("开始匹配", type="primary", use_container_width=True):
+                # 简单的匹配算法
+                results = []
+                for candidate in candidates:
+                    if candidate['status'] in ['可联系', '待面试']:
+                        # 随机匹配度（实际应用中应该是真正的算法）
+                        import random
+                        score = random.randint(60, 98)
+                        results.append({
+                            "候选人": candidate['name'],
+                            "技能": ", ".join(candidate['skills'][:3]),
+                            "匹配度": f"{score}%",
+                            "状态": candidate['status']
+                        })
+                
+                if results:
+                    results.sort(key=lambda x: int(x['匹配度'][:-1]), reverse=True)
+                    st.session_state['match_results'] = results
+                else:
+                    st.warning("没有找到匹配的候选人")
+        else:
+            st.warning("暂无招聘中的职位")
+    
+    with col2:
+        st.subheader("匹配结果")
+        if 'match_results' in st.session_state:
+            df = pd.DataFrame(st.session_state['match_results'])
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.info("点击「开始匹配」查看结果")
+
+# ==================== 数据分析 ====================
+else:
+    st.markdown('<div class="main-header"><h1>📊 数据分析</h1></div>', unsafe_allow_html=True)
+    
+    # 数据统计
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("职位状态分布")
+        status_counts = {}
+        for job in jobs:
+            status = job['status']
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        status_df = pd.DataFrame({
+            '状态': list(status_counts.keys()),
+            '数量': list(status_counts.values())
+        })
+        st.bar_chart(status_df.set_index('状态'))
+    
+    with col2:
+        st.subheader("候选人技能分布")
+        all_skills = []
+        for c in candidates:
+            all_skills.extend(c['skills'])
+        
+        from collections import Counter
+        skill_counts = Counter(all_skills).most_common(5)
+        
+        if skill_counts:
+            skill_df = pd.DataFrame({
+                '技能': [s[0] for s in skill_counts],
+                '数量': [s[1] for s in skill_counts]
+            })
+            st.bar_chart(skill_df.set_index('技能'))
+    
+    # 趋势分析
+    st.subheader("📈 合同金额趋势")
+    if contracts:
+        contract_dates = []
+        for c in contracts:
+            try:
+                date = datetime.strptime(c['start_date'], '%Y-%m-%d')
+                contract_dates.append({
+                    '日期': date,
+                    '金额': c['total_amount']
+                })
+            except:
+                pass
+        
+        if contract_dates:
+            trend_df = pd.DataFrame(contract_dates)
+            trend_df.set_index('日期', inplace=True)
+            st.line_chart(trend_df)
+    else:
+        st.info("暂无合同数据")
+
+# 页脚
+st.sidebar.markdown("---")
+st.sidebar.markdown("© 2024 灵活用工平台")

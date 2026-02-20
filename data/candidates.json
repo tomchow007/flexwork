@@ -1,0 +1,31 @@
+[
+  {
+    "id": "cand_001",
+    "name": "张三",
+    "skills": [
+      "Python",
+      "React",
+      "JavaScript"
+    ],
+    "experience": 3,
+    "expected_salary": 400,
+    "location": "上海",
+    "status": "可联系",
+    "phone": "13800138000",
+    "email": "zhangsan@example.com",
+    "availability": "周一至周五"
+  },
+  {
+    "name": "tom",
+    "skills": [
+      "11"
+    ],
+    "expected_salary": 300,
+    "experience": 1,
+    "location": "远程",
+    "status": "可联系",
+    "phone": "",
+    "email": "",
+    "id": "cand_002"
+  }
+]

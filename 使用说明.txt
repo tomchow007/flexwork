@@ -1,0 +1,31 @@
+🎯 灵活用工管理平台 - 使用指南
+
+📱 如何启动应用：
+方法1：双击 dist/FlexWork.app
+方法2：将.app文件拖到程序坞，点击图标启动
+方法3：在终端运行：open dist/FlexWork.app
+方法4：在终端运行：
+cd ~/Desktop/FlexWorkApp
+python3 app.py
+
+📍 安装到应用程序文件夹：
+运行 "安装到应用程序.command" 脚本
+
+🛠️ 如果遇到问题：
+1. 提示"无法验证开发者"：
+   - 按住Ctrl键点击应用 → 打开
+   - 或运行：sudo xattr -dr com.apple.quarantine dist/FlexWork.app
+
+2. 应用闪退：
+   - 运行：chmod -R 755 dist/FlexWork.app
+   - 或从终端查看错误：dist/FlexWork.app/Contents/MacOS/FlexWork
+
+3. 图标不显示：
+   - 重启Dock：killall Dock
+
+🔧 更新应用：
+当app.py代码更新后，重新运行：
+   pyinstaller --windowed app.py
+
+📞 技术支持：
+如有问题，请联系开发人员

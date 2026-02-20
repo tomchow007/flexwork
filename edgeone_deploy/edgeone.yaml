@@ -1,0 +1,9 @@
+name: flexwork-platform
+region: ap-guangzhou
+runtime: python3.9
+build:
+  command: pip install -r requirements.txt
+  output: .
+routes:
+  - pattern: /*
+    script: web_app.py
