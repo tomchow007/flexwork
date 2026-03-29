@@ -3,6 +3,7 @@
 灵活用工管理平台 - 完整功能版
 包含数据持久化和所有业务逻辑
 """
+import streamlit as st
 import sys
 import json
 import os
@@ -19,6 +20,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer, QDate, pyqtSignal
 from PyQt6.QtGui import QFont, QColor, QAction, QIcon
 import random
+
+st.set_page_config(
+    page_title="FlexWork - 灵活用工智能管理平台",
+    page_icon="💼",
+    layout="wide"
+)
 
 class DataManager:
     """数据管理器 - 负责所有数据的保存和加载"""
